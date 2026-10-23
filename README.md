@@ -2,8 +2,6 @@
 
 Este es el sitio web de la fundación **Nueve Lunas**, una fundación de salud mental y física. Lo estoy construyendo con Next.js y mucha animación. Mi idea es que se sienta calmado y cercano, sin dejar de ser moderno: una sola pantalla con scroll dentro de una tarjeta, textos que se van revelando y secciones que se transforman unas en otras.
 
-El diseño parte de una referencia gratuita que me gustó mucho. Yo la fui adaptando a la fundación, con sus colores, su logo, su tono y textos propios.
-
 ## Qué uso
 
 - **Next.js 16** con App Router y TypeScript
