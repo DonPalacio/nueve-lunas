@@ -12,25 +12,26 @@ Este es el sitio web de la fundación **Nueve Lunas**, una fundación de salud m
 - **Three.js** (con React Three Fiber y Drei) ya instalado, para cuando quiera meter escenas 3D
 - **Motion** también instalado, por si lo necesito
 - **Manrope** como tipografía
+- **Node.js 22** para correr todo
 
-## Cómo lo corro
+## Cómo correrlo
 
-Necesito Node 20 o superior (yo uso la 22).
+Para correrlo necesito tener instalado **Node.js 20 o superior**. Yo uso la versión 22. Puedo ver cuál tengo con `node -v`.
 
 ```bash
 npm install
 npm run dev
 ```
 
-Lo abro en [http://localhost:3000](http://localhost:3000). Si ese puerto ya lo tengo ocupado con otro proyecto, uso otro:
+Después lo abro en [http://localhost:3000](http://localhost:3000). Si ese puerto ya lo tengo ocupado con otro proyecto, uso otro:
 
 ```bash
 npm run dev -- -p 3002
 ```
 
-Los cambios se ven al instante cada vez que guardo un archivo.
+Mientras lo tengo corriendo, los cambios se ven al instante cada vez que guardo un archivo.
 
-Antes de subir algo, reviso que todo compile bien:
+Antes de subir algo, reviso que todo esté bien con estos dos comandos:
 
 ```bash
 npx tsc --noEmit
