@@ -82,7 +82,7 @@ Para cambiar el video, basta con reemplazar ese archivo por otro con el mismo no
 - Reemplazar el video del hero por uno con más personas y escenas reales
 - Revisar cómo se ve en celular y en tablet; hasta ahora lo he trabajado sobre todo para escritorio
 - Hacer más liviano el video antes de publicarlo
-- Decidir si cambio los colores pastel de la referencia por los del logo (azul petróleo y durazno)
+- Decidir si cambio los colores pastel actuales por los del logo (azul petróleo y durazno)
 
 ## Notas
 
