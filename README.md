@@ -1,36 +1,90 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Nueve Lunas
 
-## Getting Started
+Este es el sitio web de la fundación **Nueve Lunas**, una fundación de salud mental y física. Lo estoy construyendo con Next.js y mucha animación. Mi idea es que se sienta calmado y cercano, sin dejar de ser moderno: una sola pantalla con scroll dentro de una tarjeta, textos que se van revelando y secciones que se transforman unas en otras.
 
-First, run the development server:
+El diseño parte de una referencia gratuita que me gustó mucho. Yo la fui adaptando a la fundación, con sus colores, su logo, su tono y textos propios.
+
+## Qué uso
+
+- **Next.js 16** con App Router y TypeScript
+- **Tailwind CSS v4** para los estilos
+- **shadcn/ui** para los componentes base
+- **GSAP + ScrollTrigger** para casi todas las animaciones
+- **Lenis** para el scroll suave
+- **Three.js** (con React Three Fiber y Drei) ya instalado, para cuando quiera meter escenas 3D
+- **Motion** también instalado, por si lo necesito
+- **Manrope** como tipografía
+
+## Cómo lo corro
+
+Necesito Node 20 o superior (yo uso la 22).
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Lo abro en [http://localhost:3000](http://localhost:3000). Si ese puerto ya lo tengo ocupado con otro proyecto, uso otro:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev -- -p 3002
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Los cambios se ven al instante cada vez que guardo un archivo.
 
-## Learn More
+Antes de subir algo, reviso que todo compile bien:
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+npx tsc --noEmit
+npx eslint src
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Cómo está organizado
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+src/
+├─ app/                      layout, estilos globales y la página principal
+├─ components/
+│  ├─ site/
+│  │  ├─ site-frame.tsx      la tarjeta con scroll interno (Lenis + ScrollTrigger)
+│  │  ├─ nav.tsx             barra de navegación y logo (cambia de color según la sección)
+│  │  ├─ photo.tsx           imagen con degradado de reserva si no hay foto
+│  │  ├─ face-crop.tsx       recorte de caras para los avatares
+│  │  ├─ word-reveal.tsx     texto que pasa de gris a negro palabra por palabra
+│  │  └─ sections/           una carpeta por sección de la página
+│  │     ├─ hero.tsx         video de fondo y titular con trazos de pincel
+│  │     ├─ intro.tsx        texto que se transforma en las tarjetas de beneficios
+│  │     ├─ timeline.tsx     pasos para empezar
+│  │     ├─ solutions.tsx    servicios en tarjetas apiladas
+│  │     ├─ checklist.tsx    lista de lo que ofrecemos
+│  │     ├─ enhance.tsx      tarjetas de servicio
+│  │     ├─ in-action.tsx    carrusel con trazos animados
+│  │     ├─ cta.tsx          llamado a la acción
+│  │     └─ footer.tsx       pie de página con texto en movimiento
+│  └─ ui/                    componentes de shadcn
+└─ lib/                      utilidades y registro de GSAP
+public/
+├─ images/                   fotos y logos
+└─ videos/                   video del hero
+```
 
-## Deploy on Vercel
+## Imágenes y video
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Las fotos son de [Unsplash](https://unsplash.com) con licencia gratuita. Dejé los autores y los IDs en `public/images/CREDITS.md`.
+- Los logos de la fundación están en `public/images/`. Para el header uso una versión blanca (sobre la foto) y otra de colores (sobre las secciones claras).
+- El video del hero es `public/videos/hero.mp4`: 30 segundos, sin audio, en bucle. Lo armé con ffmpeg a partir de las fotos, con un zoom lento y fundidos. Si pido menos movimiento en mi navegador, se queda la foto fija.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Para cambiar el video, basta con reemplazar ese archivo por otro con el mismo nombre (y si quiero que el bucle no dé saltos, que empiece y termine con la misma imagen).
+
+## Lo que me falta
+
+- Cambiar los textos de ejemplo por los reales de la fundación
+- Reemplazar el video del hero por uno con más personas y escenas reales
+- Revisar cómo se ve en celular y en tablet; hasta ahora lo he trabajado sobre todo para escritorio
+- Hacer más liviano el video antes de publicarlo
+- Decidir si cambio los colores pastel de la referencia por los del logo (azul petróleo y durazno)
+
+## Notas
+
+- Trabajo en la rama `santiago`.
+- Este proyecto usa una versión de Next.js con cambios respecto a lo que suele conocerse. El archivo `AGENTS.md` lo recuerda, y la documentación está dentro de `node_modules/next/dist/docs/`.
