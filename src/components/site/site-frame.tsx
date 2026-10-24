@@ -1,18 +1,22 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import Lenis from "lenis";
 import { gsap, ScrollTrigger } from "@/lib/gsap";
 import { ScrollerContext } from "./scroller-context";
 import { Nav } from "./nav";
+import { Footer } from "./footer";
 
 /**
  * Tarjeta blanca redondeada que contiene toda la página. El scroll ocurre
  * dentro de ella (Lenis + ScrollTrigger usan este contenedor como scroller),
- * y la barra de navegación queda fija encima.
+ * y la barra de navegación queda fija encima. Vive en el layout: el footer
+ * va al final del contenido de cada página.
  */
 export function SiteFrame({ children }: { children: React.ReactNode }) {
   const [scroller, setScroller] = useState<HTMLDivElement | null>(null);
+  const pathname = usePathname();
   const contentRef = useRef<HTMLDivElement>(null);
   const lenisRef = useRef<Lenis | null>(null);
 
@@ -34,6 +38,13 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
       lenisRef.current = null;
     };
   }, [scroller]);
+
+  // al cambiar de página, volver arriba (el marco no se desmonta entre rutas)
+  useEffect(() => {
+    if (lenisRef.current) lenisRef.current.scrollTo(0, { immediate: true });
+    else scroller?.scrollTo({ top: 0 });
+    ScrollTrigger.refresh();
+  }, [pathname, scroller]);
 
   const scrollTo = useCallback(
     (y: number) => {
@@ -60,7 +71,10 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
           data-scroller
           className="no-scrollbar absolute inset-0 overflow-y-auto overscroll-contain"
         >
-          <div ref={contentRef}>{children}</div>
+          <div ref={contentRef}>
+            {children}
+            <Footer />
+          </div>
         </div>
       </main>
     </ScrollerContext.Provider>
