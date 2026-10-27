@@ -11,13 +11,13 @@ const cards: { title: string; text: string; icon: LucideIcon; bg: string }[] = [
     title: "Misión",
     text: "Acompañar a personas, familias y empresas en el cuidado de su salud mental y física, con atención cercana, profesional y accesible, en la modalidad que cada quien necesite.",
     icon: Target,
-    bg: "bg-butter",
+    bg: "bg-[#cef3f1]",
   },
   {
     title: "Visión",
     text: "Ser una fundación de referencia en bienestar emocional, donde pedir ayuda sea algo natural y cada comunidad cuente con un espacio seguro para sanar y crecer.",
     icon: Eye,
-    bg: "bg-periwinkle",
+    bg: "bg-[#e0e0e0]",
   },
 ];
 
@@ -42,8 +42,8 @@ export function AboutMission() {
   );
 
   return (
-    <section ref={root} className="px-[18px] py-6">
-      <div className="mx-auto grid max-w-[1400px] gap-4 rounded-[22px] bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:grid-cols-[0.8fr_1.2fr] md:p-5">
+    <section ref={root} className="-mt-[50px] px-[18px] py-6">
+      <div className="mx-auto grid max-w-[1400px] gap-4 rounded-[22px] p-4 md:grid-cols-[0.8fr_1.2fr] md:p-5">
         <div className="ms-media relative min-h-[420px] overflow-hidden rounded-[22px]">
           <Photo
             src="/images/person-chair.jpg"
