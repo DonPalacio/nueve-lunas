@@ -62,7 +62,7 @@ export function AboutHero() {
               position="38% 50%"
             />
           </div>
-          <div className="ah-seal absolute bottom-10 left-6 grid size-[116px] place-items-center rounded-full bg-butter text-center md:-left-14">
+          <div className="ah-seal absolute bottom-10 left-6 grid size-[116px] place-items-center rounded-full bg-[#e6c4fd] text-center md:-left-14">
             <div className="flex flex-col items-center gap-1">
               <Moon className="size-5" strokeWidth={1.3} />
               <span className="text-[13px] font-medium leading-tight">

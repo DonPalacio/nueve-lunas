@@ -11,7 +11,7 @@ const cards: { title: string; text: string; icon: LucideIcon; bg: string }[] = [
     title: "Misión",
     text: "Acompañar a personas, familias y empresas en el cuidado de su salud mental y física, con atención cercana, profesional y accesible, en la modalidad que cada quien necesite.",
     icon: Target,
-    bg: "bg-[#cef3f1]",
+    bg: "bg-butter",
   },
   {
     title: "Visión",
