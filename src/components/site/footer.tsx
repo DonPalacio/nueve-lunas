@@ -12,7 +12,7 @@ const columns: { title: string; links: { label: string; href: string }[] }[] = [
     links: [
       { label: "Inicio", href: "/" },
       { label: "Servicios", href: "/services" },
-      { label: "Programas", href: "/programs" },
+      { label: "Conócenos", href: "/about" },
       { label: "Contacto", href: "/contact" },
     ],
   },
