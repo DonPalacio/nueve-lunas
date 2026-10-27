@@ -32,8 +32,8 @@ export function AboutHero() {
         <div className="flex flex-col justify-center gap-6 px-6 py-14 md:pl-14 md:pr-20">
           <h1 className="text-[clamp(36px,4.8vw,66px)] font-medium leading-[1.04] tracking-tight">
             {title.split(" ").map((w, i) => (
-              <span key={i} className="-mb-[0.12em] inline-block overflow-hidden pb-[0.12em] align-bottom">
-                <span className="ah-word inline-block">{w}</span>{" "}
+              <span key={i} className="-mb-[0.12em] mr-[0.25em] inline-block overflow-hidden pb-[0.12em] align-bottom">
+                <span className="ah-word inline-block">{w}</span>
               </span>
             ))}
           </h1>
