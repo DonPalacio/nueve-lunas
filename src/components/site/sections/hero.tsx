@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useRef } from "react";
-import { ArrowRight } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
+import { ArrowRight, ChevronDown, Search, Star } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap";
 import { Photo } from "../photo";
-import { FaceCrop } from "../face-crop";
+import { useScroller } from "../scroller-context";
+import { AnimatedTooltip, type TooltipPerson } from "../animated-tooltip";
 
 type Segment = { words: string[]; brush?: 0 | 1 | 2; after?: string };
 
@@ -69,7 +71,14 @@ function Brush({ i }: { i: 0 | 1 | 2 }) {
   );
 }
 
-const avatarFaces = ["a", "c", "e"] as const;
+/** Nombres y roles de ejemplo para la etiqueta; cámbialos por los reales. El zoom de la cara del medio es mayor porque sale más lejos en la foto. */
+const people: TooltipPerson[] = [
+  { id: 1, name: "Camila R.", designation: "Psicóloga clínica", face: "a" },
+  { id: 2, name: "Sofía L.", designation: "Orientadora familiar", face: "b" },
+  { id: 3, name: "Andrés M.", designation: "Terapeuta", face: "c", zoom: 7.5 },
+  { id: 4, name: "Daniel T.", designation: "Psiquiatra", face: "d" },
+  { id: 5, name: "Valentina P.", designation: "Acompañante", face: "e" },
+];
 
 /** Parte una palabra en letras para animarlas una a una. */
 function Letters({ word }: { word: string }) {
@@ -87,6 +96,16 @@ function Letters({ word }: { word: string }) {
 export function Hero() {
   const root = useRef<HTMLElement>(null);
   const video = useRef<HTMLVideoElement>(null);
+  const { scroller, scrollTo } = useScroller();
+  // en móvil los avatares van a la mitad de tamaño
+  const [compact, setCompact] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(max-width: 767px)");
+    const update = () => setCompact(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
 
   // si la persona pidió menos movimiento, se queda la foto fija
   useEffect(() => {
@@ -95,39 +114,54 @@ export function Hero() {
 
   useGSAP(
     () => {
-      const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
-      tl.to(".hero-veil", { opacity: 0, duration: 1.1, ease: "power1.inOut" })
-        // los avatares salen apilados desde el primero
-        .from(".hero-avatar", { scale: 0.4, opacity: 0, duration: 0.6, ease: "back.out(2)" }, 0.5)
-        .from(".hero-avatar:not(:first-child)", { x: (i) => -56 * (i + 1), duration: 0.9, ease: "power3.inOut" }, 0.9)
-        .from(".hero-trust", { opacity: 0, x: -10, duration: 0.6 }, 1.5)
-        .from(".hero-cta", { opacity: 0, y: 12, duration: 0.7 }, 3.9);
-
-      // cada frase se escribe letra por letra; las de "sin ..." se pintan con su trazo a la vez que se escriben
-      ORDER.forEach((li, n) => {
-        const at = 0.7 + n * 0.62;
-        tl.from(
-          `.hero-seg[data-i="${li}"] .hero-char`,
-          { opacity: 0, filter: "blur(10px)", duration: 0.5, stagger: 0.03, ease: "power2.out" },
-          at,
-        );
-        if (segments[li].brush !== undefined) {
-          // el trazo avanza a la vez que el barrido de letras (misma velocidad, sin esperar a que termine)
-          const chars = segments[li].words[0].length + (segments[li].after?.length ?? 0);
-          tl.to(
-            `.hero-seg[data-i="${li}"] .hero-brush`,
-            { clipPath: "inset(0 0% 0 0)", duration: chars * 0.03 + 0.3, ease: "none" },
-            at + 0.04,
-          );
-        }
+      const mm = gsap.matchMedia();
+      // con "reducir movimiento" todo se muestra ya terminado, sin escritura ni trazos animados
+      mm.add("(prefers-reduced-motion: reduce)", () => {
+        gsap.set(".hero-veil", { opacity: 0 });
+        gsap.set(".hero-brush", { clipPath: "inset(0 0% 0 0)" });
       });
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const tl = gsap.timeline({ defaults: { ease: "power3.out" } });
+        tl.to(".hero-veil", { opacity: 0, duration: 1.1, ease: "power1.inOut" })
+          // los avatares salen apilados desde el primero
+          // un solo tween con valores finales explícitos: así ninguno se queda a medio escalar
+          .fromTo(
+            ".hero-avatar",
+            { scale: 0.4, opacity: 0, x: (i) => -56 * i },
+            { scale: 1, opacity: 1, x: 0, duration: 1, ease: "back.out(1.4)" },
+            0.5,
+          )
+          .from(".hero-trust", { opacity: 0, x: -10, duration: 0.6 }, 1.5)
+          .from(".hero-cta", { opacity: 0, y: 12, duration: 0.7 }, 3.9)
+          .from(".hero-scroll", { opacity: 0, duration: 0.8 }, 4.4);
+
+        // cada frase se escribe letra por letra; las de "sin ..." se pintan con su trazo a la vez que se escriben
+        ORDER.forEach((li, n) => {
+          const at = 0.7 + n * 0.62;
+          tl.from(
+            `.hero-seg[data-i="${li}"] .hero-char`,
+            { opacity: 0, filter: "blur(10px)", duration: 0.5, stagger: 0.03, ease: "power2.out" },
+            at,
+          );
+          if (segments[li].brush !== undefined) {
+            // el trazo avanza a la vez que el barrido de letras (misma velocidad, sin esperar a que termine)
+            const chars = segments[li].words[0].length + (segments[li].after?.length ?? 0);
+            tl.to(
+              `.hero-seg[data-i="${li}"] .hero-brush`,
+              { clipPath: "inset(0 0% 0 0)", duration: chars * 0.03 + 0.3, ease: "none" },
+              at + 0.04,
+            );
+          }
+        });
+      });
+      return () => mm.revert();
     },
     { scope: root },
   );
 
   return (
     <section id="inicio" ref={root} className="relative p-5" style={{ height: "var(--frame-h)" }}>
-      <div className="relative h-full overflow-hidden rounded-[22px]">
+      <div className="relative h-full overflow-hidden rounded-[22px] [border-top-right-radius:0]">
         {/* la foto queda debajo y como póster: se ve al instante mientras carga el video */}
         <Photo
           src="/images/hero.jpg"
@@ -139,7 +173,6 @@ export function Hero() {
         <video
           ref={video}
           className="absolute inset-0 size-full object-cover"
-          src="/videos/hero.mp4"
           poster="/images/hero.jpg"
           autoPlay
           muted
@@ -147,29 +180,87 @@ export function Hero() {
           playsInline
           preload="auto"
           aria-hidden
-        />
+        >
+          <source src="/videos/hero-mobile.mp4" media="(max-width: 767px)" type="video/mp4" />
+          <source src="/videos/hero.mp4" type="video/mp4" />
+        </video>
         {/* vidrio esmerilado: desenfoca la foto solo detrás del texto y se desvanece hacia los bordes */}
         <div className="absolute inset-0 bg-white/20 backdrop-blur-2xl backdrop-saturate-50 [mask-image:radial-gradient(ellipse_72%_66%_at_14%_80%,#000_30%,transparent_82%)]" />
         <div className="absolute inset-x-0 top-0 h-32 bg-gradient-to-b from-black/30 to-transparent" />
+        {/* luz suave desde la esquina del titular para que el texto oscuro se lea sobre cualquier fotograma */}
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_75%_80%_at_0%_100%,rgba(255,255,255,0.4),transparent_72%)]" />
         <div className="hero-veil absolute inset-0 bg-[#fdfefb]" />
 
-        <div className="absolute bottom-[52px] left-[50px] max-w-[820px] max-md:left-6 max-md:right-6">
-          <div className="mb-[18px] flex">
-            {avatarFaces.map((face, i) => (
-              <div
-                key={face}
-                className="hero-avatar relative -ml-4 size-[72px] overflow-hidden rounded-full border border-white/70 first:ml-0"
-                style={{ zIndex: 3 - i }}
-              >
-                <FaceCrop face={face} size={72} />
-              </div>
-            ))}
-          </div>
-          <p className="hero-trust mb-14 inline-flex items-center gap-2 rounded-full bg-white/55 px-3 py-1.5 text-[12px] text-ink backdrop-blur-md">
-            <span className="size-1.5 rounded-full bg-white" />
-            Acompañados por +2 mil personas
-          </p>
+        {/* muesca con esquinas curvas hacia adentro en la esquina superior derecha; el buscador queda sobre el blanco, fuera de la foto */}
+        <div className="absolute right-0 top-0 z-10 grid size-14 place-items-center rounded-bl-[20px] bg-[#fdfefb]">
+          <button
+            aria-label="Buscar"
+            className="grid size-10 place-items-center rounded-2xl border border-ink/10 bg-white text-ink/60 transition-colors hover:bg-ink/5"
+          >
+            <Search className="size-[18px]" strokeWidth={2} />
+          </button>
+        </div>
+        {/* muesca central tipo isla: queda detrás de los links del menú (centrada igual que ellos) */}
+        <div
+          aria-hidden
+          className="absolute top-0 z-10 hidden h-[52px] w-[500px] -translate-x-1/2 rounded-b-[20px] bg-[#fdfefb] md:block"
+          style={{ left: "calc(50% - 40px)" }}
+        />
+        <div
+          aria-hidden
+          className="absolute top-0 z-10 hidden size-5 md:block"
+          style={{
+            left: "calc(50% - 40px - 250px - 20px)",
+            background: "radial-gradient(circle at 0 100%, transparent 20px, #fdfefb 20.5px)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute top-0 z-10 hidden size-5 md:block"
+          style={{
+            left: "calc(50% - 40px + 250px)",
+            background: "radial-gradient(circle at 100% 100%, transparent 20px, #fdfefb 20.5px)",
+          }}
+        />
+        <div
+          aria-hidden
+          className="absolute right-14 top-0 z-10 size-5"
+          style={{ background: "radial-gradient(circle at 0 100%, transparent 20px, #fdfefb 20.5px)" }}
+        />
+        <div
+          aria-hidden
+          className="absolute right-0 top-14 z-10 size-5"
+          style={{ background: "radial-gradient(circle at 0 100%, transparent 20px, #fdfefb 20.5px)" }}
+        />
 
+        {/* prueba social abajo a la derecha: equilibra el texto de la izquierda */}
+        <div className="hero-trust absolute bottom-[52px] right-[50px] rounded-[22px] bg-white/55 p-4 text-ink backdrop-blur-md max-md:grid max-md:grid-cols-[auto_auto] max-md:items-center max-md:gap-x-2.5 max-md:bottom-auto max-md:left-6 max-md:right-auto max-md:top-[104px]">
+          <div className="flex items-center">
+            <AnimatedTooltip items={people} size={compact ? 26 : 52} />
+          </div>
+          <p className="mt-3 text-[13px] font-medium max-md:order-3 max-md:col-span-2 max-md:mt-2"><span className="max-md:hidden">Acompañados por </span>+2 mil personas</p>
+          {/* calificación de ejemplo: reemplazar por datos reales antes de publicar */}
+          <div className="mt-1.5 flex items-center gap-1.5 max-md:mt-0">
+            <div className="flex gap-0.5" aria-hidden>
+              {Array.from({ length: 5 }).map((_, i) => (
+                <Star key={i} className="size-3.5 fill-[#f5b72e] text-[#f5b72e]" strokeWidth={1.5} />
+              ))}
+            </div>
+            <span className="text-[12px] text-ink/70 max-md:hidden">4.9 · Opiniones de la comunidad</span>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          aria-label="Ir a la siguiente sección"
+          onClick={() => scrollTo(scroller?.clientHeight ?? window.innerHeight)}
+          className="hero-scroll absolute bottom-5 left-1/2 z-10 hidden -translate-x-1/2 flex-col items-center gap-1 text-[11px] uppercase tracking-[0.18em] text-white drop-shadow-[0_1px_6px_rgba(0,0,0,0.5)] md:flex"
+        >
+          Desliza
+          <ChevronDown className="size-4 motion-safe:animate-bounce" />
+        </button>
+
+        <div className="absolute bottom-[52px] left-[50px] max-w-[820px] max-md:left-6 max-md:right-6">
           <h1 className="text-[clamp(26px,3.3vw,42px)] font-medium leading-[1.2] tracking-tight text-ink">
             {layoutLines.map((ids, row) => (
               <span key={row} className="block">
@@ -201,13 +292,21 @@ export function Hero() {
             ))}
           </h1>
 
-          <a
-            href="#contacto"
-            className="hero-cta mt-7 inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[13px] text-ink shadow-sm transition-transform hover:scale-[1.03]"
-          >
-            Agendar una consulta
-            <ArrowRight className="size-3.5" />
-          </a>
+          <div className="hero-cta mt-7 flex flex-wrap items-center gap-3">
+            <a
+              href="#contacto"
+              className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-[13px] text-ink shadow-sm transition-transform hover:scale-[1.03]"
+            >
+              Agendar una consulta
+              <ArrowRight className="size-3.5" />
+            </a>
+            <Link
+              href="/services"
+              className="inline-flex items-center rounded-full border border-ink/25 bg-white/20 px-5 py-3 text-[13px] text-ink backdrop-blur-md transition-colors hover:bg-white/50"
+            >
+              Conocer los servicios
+            </Link>
+          </div>
         </div>
       </div>
     </section>

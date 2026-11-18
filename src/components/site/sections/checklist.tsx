@@ -3,8 +3,11 @@
 import { useRef } from "react";
 import { Check, CircleHelp } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { lockedSequence } from "../locked-sequence";
 import { useScroller } from "../scroller-context";
 import { WordReveal } from "../word-reveal";
+
+const PAINT = "#dbe4f3";
 
 const items = [
   "Terapia individual", "Orientación familiar", "Acompañamiento en duelo",
@@ -14,21 +17,62 @@ const items = [
 
 export function Checklist() {
   const root = useRef<HTMLElement>(null);
-  const { scroller } = useScroller();
+  const { scroller, stop, start, glideTo } = useScroller();
 
   useGSAP(
     () => {
-      if (!scroller) return;
-      // el panel sube desde abajo; los ítems aparecen en cascada por filas
-      gsap.fromTo(
-        ".ck-panel",
-        { y: 120, opacity: 0.3 },
-        { y: 0, opacity: 1, ease: "none", scrollTrigger: { trigger: root.current, scroller, start: "top 100%", end: "top 55%", scrub: 0.6 } },
-      );
-      const scrollTrigger = { trigger: root.current, scroller, start: "top 55%" };
-      gsap.from(".ck-aside", { opacity: 0, duration: 0.8, delay: 0.3, scrollTrigger });
-      gsap.from(".ck-item", { opacity: 0, x: -16, duration: 0.7, stagger: 0.12, delay: 0.5, ease: "power3.out", scrollTrigger });
-      gsap.from(".ck-check", { scale: 0, duration: 0.5, stagger: 0.12, delay: 0.7, ease: "back.out(3)", scrollTrigger });
+      if (!scroller || !root.current) return;
+      const mm = gsap.matchMedia();
+
+      // con "reducir movimiento" todo se queda visible, sin bloqueo ni animación
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+        const items = gsap.utils.toArray<HTMLElement>(".ck-item");
+
+        // estado inicial oculto (así no hay parpadeo antes de que arranque)
+        gsap.set(".ck-panel", { y: 80, opacity: 0.3 });
+        gsap.set(".ck-aside", { opacity: 0, y: 10 });
+        gsap.set(".ck-check", { scale: 0, backgroundColor: "#ffffff" });
+        gsap.set(".ck-ring", { opacity: 0 });
+        gsap.set(".ck-label", { opacity: 0, x: -14, filter: "blur(6px)", clipPath: "inset(0 100% 0 0)" });
+        gsap.set(".ck-line", { scaleX: 0, transformOrigin: "left center" });
+        const ticks = gsap.utils.toArray<SVGPathElement>(".ck-tick path");
+        ticks.forEach((path) => {
+          const len = path.getTotalLength();
+          gsap.set(path, { strokeDasharray: len, strokeDashoffset: len });
+        });
+
+        const tl = gsap.timeline({ defaults: { ease: "expo.out" }, paused: true });
+        tl.to(".ck-panel", { y: 0, opacity: 1, duration: 1 }, 0);
+        tl.to(".wr-word", { opacity: 1, duration: 0.5, stagger: 0.07, ease: "power2.out" }, 0.15);
+        tl.to(".ck-aside", { opacity: 1, y: 0, duration: 0.8 }, 0.5);
+
+        // cada servicio se "marca" como una historia que se confirma: el círculo se pinta, la marca se dibuja,
+        // el texto se revela de izquierda a derecha y una línea fina lo subraya
+        items.forEach((item, i) => {
+          const t = 0.7 + i * 0.3;
+          const check = item.querySelector(".ck-check");
+          const ring = item.querySelector(".ck-ring");
+          const tick = item.querySelector(".ck-tick path");
+          tl.to(check, { scale: 1, backgroundColor: PAINT, duration: 0.7, ease: "back.out(2.4)" }, t);
+          tl.fromTo(ring, { scale: 1, opacity: 0.6 }, { scale: 2.1, opacity: 0, duration: 0.8, ease: "power2.out", immediateRender: false }, t);
+          tl.to(tick, { strokeDashoffset: 0, duration: 0.45, ease: "power2.out" }, t + 0.15);
+          tl.to(item.querySelector(".ck-label"), { opacity: 1, x: 0, filter: "blur(0px)", clipPath: "inset(0 0% 0 0)", duration: 0.8 }, t + 0.1);
+          tl.to(item.querySelector(".ck-line"), { scaleX: 1, duration: 0.9 }, t + 0.25);
+        });
+
+        // el scroll queda congelado hasta que todo se muestre; si la persona insiste, la animación acelera
+        return lockedSequence({
+          root: root.current!,
+          focus: root.current!.querySelector<HTMLElement>(".ck-panel")!,
+          scroller,
+          tl,
+          stop,
+          start,
+          glideTo,
+        });
+      });
+
+      return () => mm.revert();
     },
     { scope: root, dependencies: [scroller] },
   );
@@ -48,11 +92,13 @@ export function Checklist() {
 
         <ul className="mt-[72px] grid gap-x-10 gap-y-9 md:grid-cols-3">
           {items.map((t) => (
-            <li key={t} className="ck-item flex items-center gap-4 text-[clamp(17px,1.7vw,22px)] leading-tight tracking-tight">
-              <span className="ck-check grid size-9 shrink-0 place-items-center rounded-full bg-periwinkle">
-                <Check className="size-4" strokeWidth={2} />
+            <li key={t} className="ck-item relative flex items-center gap-4 pb-4 text-[clamp(17px,1.7vw,22px)] leading-tight tracking-tight">
+              <span className="ck-check relative grid size-9 shrink-0 place-items-center rounded-full bg-periwinkle">
+                <span aria-hidden className="ck-ring pointer-events-none absolute inset-0 rounded-full border-2 border-[#9db6e0]" />
+                <Check className="ck-tick size-4" strokeWidth={2} />
               </span>
-              {t}
+              <span className="ck-label inline-block">{t}</span>
+              <span aria-hidden className="ck-line absolute inset-x-0 bottom-0 h-px bg-[#dbe4f3]" />
             </li>
           ))}
         </ul>

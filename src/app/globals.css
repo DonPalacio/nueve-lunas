@@ -134,8 +134,8 @@
     background-attachment: fixed;
   }
   :root {
-    --frame-x: 5vw;
-    --frame-y: 6vh;
+    --frame-x: 1.5vw;
+    --frame-y: 2.5vh;
     --frame-h: calc(100svh - 2 * var(--frame-y));
   }
   .no-scrollbar {

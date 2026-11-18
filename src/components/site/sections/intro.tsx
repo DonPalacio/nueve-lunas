@@ -2,7 +2,7 @@
 
 import { useRef } from "react";
 import { ArrowRight, Brain, HandHeart, HeartHandshake, HeartPulse, Sprout, type LucideIcon } from "lucide-react";
-import { gsap, useGSAP } from "@/lib/gsap";
+import { gsap, ScrollTrigger, useGSAP } from "@/lib/gsap";
 import { Photo } from "../photo";
 import { FaceCrop } from "../face-crop";
 import { useScroller } from "../scroller-context";
@@ -48,6 +48,12 @@ const cards = [
   { key: "prof", photo: "/images/therapist-office.jpg", pos: "70% 50%", label: "Profesionales certificados", bg: "bg-periwinkle" },
 ] as const;
 
+/** Cuántas palabras hay antes de cada icono, para sincronizarlo con el recorrido del texto. */
+const wordsBefore = tokens.reduce<number[]>((acc, t, idx) => {
+  if (typeof t !== "string") acc.push(tokens.slice(0, idx).filter((x) => typeof x === "string").length);
+  return acc;
+}, []);
+
 const ROW_GAP = 76;
 const DOT = 46;
 
@@ -67,6 +73,29 @@ export function Intro() {
       const cardEls = q(".in-card") as HTMLElement[];
       const inners = q(".in-inner");
       const photos = q(".in-photo");
+      // gestos de los iconos: valen en cualquier ancho de pantalla y se disparan también al pasar el mouse
+      const gestures: { keyframes: gsap.TweenVars[] }[] = [
+        // corazón: late dos veces
+        { keyframes: [{ scale: 1.6, duration: 0.22 }, { scale: 1, duration: 0.2 }, { scale: 1.45, duration: 0.22 }, { scale: 1, duration: 0.3 }] },
+        // cerebro: se mueve como pensando
+        { keyframes: [{ rotate: -22, scale: 1.3, duration: 0.22 }, { rotate: 20, duration: 0.26 }, { rotate: -12, duration: 0.22 }, { rotate: 0, scale: 1, duration: 0.25 }] },
+        // mano con corazón: rebota
+        { keyframes: [{ y: -10, scale: 1.3, duration: 0.25 }, { y: 0, scale: 1, duration: 0.22 }, { y: -5, duration: 0.2 }, { y: 0, duration: 0.25 }] },
+        // cara: salto pequeño
+        { keyframes: [{ scale: 1.3, rotate: -8, duration: 0.28 }, { scale: 1, rotate: 0, duration: 0.4 }] },
+      ];
+      const offs: (() => void)[] = [];
+      const gestureOf = pillEls.map((pill, i) => {
+        const target = pill.querySelector(".in-pill-icon") ?? pill; // la cara no tiene icono: se anima la píldora
+        const gesture = gsap.to(target, { keyframes: gestures[i].keyframes, ease: "power2.out", paused: true });
+        const hover = () => {
+          if (!gesture.isActive()) gesture.restart();
+        };
+        pill.addEventListener("mouseenter", hover);
+        offs.push(() => pill.removeEventListener("mouseenter", hover));
+        return gesture;
+      });
+
       const mm = gsap.matchMedia();
 
       mm.add("(min-width: 1024px)", () => {
@@ -106,15 +135,24 @@ export function Intro() {
 
         // 0–5: el texto se revela palabra por palabra y aparecen los iconos
         tl.fromTo(words, { opacity: 0.14 }, { opacity: 1, duration: 1, stagger: { amount: 4 } }, 0);
-        tl.fromTo(pillEls, { opacity: 0 }, { opacity: 1, duration: 0.5, stagger: { amount: 4 } }, 0.2);
+        // cada icono aparece y se anima justo cuando el recorrido del texto llega a él (atado al scroll, así se ve avanzar)
+        const wordStep = 4 / (words.length - 1);
+        pillEls.forEach((pill, i) => {
+          const at = (wordsBefore[i] - 1) * wordStep + 0.5;
+          const target = pill.querySelector(".in-pill-icon") ?? pill;
+          tl.fromTo(pill, { opacity: 0 }, { opacity: 1, duration: 0.5 }, at);
+          tl.to(target, { keyframes: gestures[i].keyframes.map((k) => ({ ...k, duration: Number(k.duration ?? 0.25) * 2.4 })), ease: "power1.inOut" }, at + 0.2);
+        });
         // 6–7: el texto se desvanece, los iconos se quedan
         tl.to(words, { opacity: 0, duration: 1 }, 6);
         // 7: los iconos pasan a elementos "volantes" que viajan hasta una fila central
         tl.set(pillEls, { opacity: 0 }, 7);
         flyEls.forEach((fly, i) => {
+          // el clon vive invisible hasta el segundo 7; si no, tapa al icono real y no se ve su animación
+          tl.fromTo(fly, { opacity: 0 }, { opacity: 1, duration: 0.01 }, 7);
           tl.fromTo(
             fly,
-            { x: () => pillCenter(i).x - DOT / 2, y: () => pillCenter(i).y - DOT / 2, opacity: 1 },
+            { x: () => pillCenter(i).x - DOT / 2, y: () => pillCenter(i).y - DOT / 2 },
             {
               x: () => rowCenter(i).x - DOT / 2,
               y: () => rowCenter(i).y - DOT / 2,
@@ -151,10 +189,16 @@ export function Intro() {
         tl.fromTo(inners, { opacity: 0 }, { opacity: 1, duration: 0.5, stagger: 0.08 }, 9.55);
         tl.fromTo(".in-cta", { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.6 }, 9.5);
         tl.to({}, { duration: 0.6 }, 10);
+        // la capa de tarjetas no debe tapar los iconos del texto hasta que las tarjetas aparecen
+        tl.set([...cardEls, ".in-cta"], { pointerEvents: "auto" }, 8);
       });
 
       mm.add("(max-width: 1023px)", () => {
         gsap.set(flyEls, { opacity: 0 });
+        // en pantallas chicas el icono se anima cuando entra en la vista
+        pillEls.forEach((pill, i) =>
+          ScrollTrigger.create({ trigger: pill, scroller, start: "top 85%", once: true, onEnter: () => void gestureOf[i].restart() }),
+        );
         gsap.fromTo(words, { opacity: 0.2 }, {
           opacity: 1,
           stagger: 0.06,
@@ -171,7 +215,10 @@ export function Intro() {
         });
       });
 
-      return () => mm.revert();
+      return () => {
+        offs.forEach((off) => off());
+        mm.revert();
+      };
     },
     { scope: root, dependencies: [scroller] },
   );
@@ -203,7 +250,7 @@ export function Intro() {
                   className={`in-pill relative mr-[0.26em] inline-grid size-[46px] translate-y-[0.12em] place-items-center overflow-hidden rounded-full ${t.bg}`}
                 >
                   {Icon ? (
-                    <Icon className="size-[22px] text-ink" strokeWidth={1.4} />
+                    <Icon className="in-pill-icon size-[22px] origin-center text-ink" strokeWidth={1.4} />
                   ) : (
                     <FaceCrop face={t.face!} size={46} zoom={5} />
                   )}
@@ -232,7 +279,7 @@ export function Intro() {
 
         <div
           ref={wrap}
-          className="relative px-[34px] pb-24 lg:absolute lg:inset-x-0 lg:top-[calc(50%-192px)] lg:pb-0"
+          className="relative px-[34px] pb-24 lg:pointer-events-none lg:absolute lg:inset-x-0 lg:top-[calc(50%-192px)] lg:pb-0"
         >
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {cards.map((c) => (

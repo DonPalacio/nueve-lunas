@@ -54,8 +54,22 @@ export function SiteFrame({ children }: { children: React.ReactNode }) {
     [scroller],
   );
 
+  const stop = useCallback(() => lenisRef.current?.stop(), []);
+  const start = useCallback(() => lenisRef.current?.start(), []);
+  const glideTo = useCallback(
+    (y: number, opts?: { duration?: number; onComplete?: () => void }) => {
+      if (lenisRef.current) {
+        lenisRef.current.scrollTo(y, { duration: opts?.duration ?? 1.1, lock: true, onComplete: opts?.onComplete });
+      } else {
+        scroller?.scrollTo({ top: y, behavior: "smooth" });
+        opts?.onComplete?.();
+      }
+    },
+    [scroller],
+  );
+
   return (
-    <ScrollerContext.Provider value={{ scroller, scrollTo }}>
+    <ScrollerContext.Provider value={{ scroller, scrollTo, stop, start, glideTo }}>
       <main
         className="fixed overflow-hidden rounded-[28px] bg-[#fdfefb] shadow-[0_30px_80px_-40px_rgba(60,80,40,0.35)]"
         style={{

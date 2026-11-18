@@ -48,12 +48,12 @@ export function Nav() {
   return (
     <nav
       ref={root}
-      className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-[112px] items-start px-[46px] pt-[44px] text-[15px] text-ink"
+      className="pointer-events-none absolute inset-x-0 top-0 z-50 flex h-[112px] items-start px-[46px] pt-[26px] text-[15px] text-ink"
     >
       <Link
         href="/"
         aria-label="Nueve Lunas — inicio"
-        className="nav-item pointer-events-auto relative -ml-1 -mt-0.5 block h-[48px] w-[211px] transition-transform hover:scale-[1.03]"
+        className="nav-item pointer-events-auto relative -ml-1 mt-3 block h-[44px] w-[194px] transition-transform hover:scale-[1.03]"
       >
         <Image
           src="/images/logo-blanco-recortado.png"
@@ -72,11 +72,11 @@ export function Nav() {
           className={`absolute inset-0 h-full w-full object-contain object-left transition-opacity duration-500 ${overHero ? "opacity-0" : "opacity-100"}`}
         />
       </Link>
-      <ul className="absolute left-1/2 top-[44px] hidden -translate-x-1/2 gap-10 md:flex" style={{ marginLeft: "-40px" }}>
+      <ul className="absolute left-1/2 top-[35px] hidden -translate-x-1/2 gap-10 md:flex" style={{ marginLeft: "-40px" }}>
         {links.map((l) => (
           <li key={l.label} className="nav-item pointer-events-auto relative">
             {pathname === l.href && (
-              <span className="absolute -left-3.5 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-sage" />
+              <span className="absolute -left-2.5 top-1/2 size-1.5 -translate-y-1/2 rounded-full bg-[#826fa0]" />
             )}
             <Link href={l.href} className="transition-opacity hover:opacity-60">
               {l.label}
@@ -84,12 +84,15 @@ export function Nav() {
           </li>
         ))}
       </ul>
-      <button
-        aria-label="Buscar"
-        className="nav-item pointer-events-auto absolute right-[22px] top-[26px] grid size-[38px] place-items-center rounded-full bg-white shadow-sm"
-      >
-        <Search className="size-4" />
-      </button>
+      {/* en la portada el buscador vive en la muesca del hero */}
+      {pathname !== "/" && (
+        <button
+          aria-label="Buscar"
+          className="nav-item pointer-events-auto absolute right-[22px] top-[26px] grid size-[38px] place-items-center rounded-full bg-white shadow-sm"
+        >
+          <Search className="size-4" />
+        </button>
+      )}
     </nav>
   );
 }

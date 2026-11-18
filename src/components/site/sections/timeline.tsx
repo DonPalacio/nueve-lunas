@@ -3,8 +3,11 @@
 import { useRef } from "react";
 import { Phone } from "lucide-react";
 import { gsap, useGSAP } from "@/lib/gsap";
+import { lockedSequence } from "../locked-sequence";
 import { useScroller } from "../scroller-context";
 import { WordReveal } from "../word-reveal";
+
+const PAINT = "#cfe8b4";
 
 const steps = [
   { n: "01", title: "Semana 1", text: "Primer contacto y entrevista de acogida" },
@@ -16,28 +19,73 @@ const steps = [
 
 export function Timeline() {
   const root = useRef<HTMLElement>(null);
-  const { scroller } = useScroller();
+  const { scroller, stop, start, glideTo } = useScroller();
 
   useGSAP(
     () => {
       if (!scroller) return;
-      const scrollTrigger = { trigger: root.current, scroller, start: "top 62%" };
-      gsap.from(".tl-head > :not(h2)", { opacity: 0, y: 24, duration: 0.9, stagger: 0.1, ease: "power3.out", scrollTrigger });
-      gsap.from(".tl-step", { opacity: 0, y: 24, duration: 0.8, stagger: 0.18, ease: "power3.out", scrollTrigger });
+      const steps = gsap.utils.toArray<HTMLElement>(".tl-step");
+      const mm = gsap.matchMedia();
 
-      // cada número y sus puntos se rellenan en orden, de izquierda a derecha, como una ola
-      const wave: Element[] = [];
-      gsap.utils.toArray<HTMLElement>(".tl-step").forEach((step) => {
-        wave.push(step.querySelector(".tl-num")!, ...Array.from(step.querySelectorAll(".tl-dot")));
+      // con "reducir movimiento" todo queda pintado de una vez
+      mm.add("(prefers-reduced-motion: reduce)", () => {
+        gsap.set(".tl-num, .tl-dot", { backgroundColor: PAINT });
       });
-      gsap.to(wave, {
-        backgroundColor: "#e3f2d6",
-        duration: 0.4,
-        stagger: 0.11,
-        delay: 0.5,
-        ease: "power1.out",
-        scrollTrigger,
+
+      mm.add("(prefers-reduced-motion: no-preference)", () => {
+
+        // el título y el texto de cada paso nacen desenfocados y suben; se ocultan desde el inicio para no parpadear
+        gsap.set(".tl-title, .tl-text", { opacity: 0, y: 22, filter: "blur(8px)" });
+        gsap.set(".tl-num", { scale: 0.6, opacity: 0 });
+        steps.forEach((st) => {
+          const n = st.querySelector<HTMLElement>(".tl-n");
+          if (n) n.textContent = "00";
+        });
+        gsap.set(".tl-ring", { opacity: 0 });
+
+        const tl = gsap.timeline({ defaults: { ease: "expo.out" }, paused: true });
+        tl.from(".tl-head > :not(h2)", { opacity: 0, y: 24, duration: 0.9, stagger: 0.1 }, 0);
+        const STEP = 0.9; // tiempo entre un paso y el siguiente
+
+        steps.forEach((step, i) => {
+          const t = i * STEP;
+          const num = step.querySelector(".tl-num");
+          const digit = step.querySelector<HTMLElement>(".tl-n");
+          const ring = step.querySelector(".tl-ring");
+          const dots = Array.from(step.querySelectorAll(".tl-dot"));
+          const target = i + 1;
+          const counter = { v: 0 };
+
+          // el número aparece con rebote, se pinta y cuenta hasta su valor; un anillo se expande como pulso
+          tl.to(num, { scale: 1, opacity: 1, backgroundColor: PAINT, duration: 0.7, ease: "back.out(2.2)" }, t);
+          tl.fromTo(ring, { scale: 1, opacity: 0.7 }, { scale: 2, opacity: 0, duration: 0.8, ease: "power2.out", immediateRender: false }, t);
+          tl.to(
+            counter,
+            {
+              v: target,
+              duration: 0.55,
+              ease: "power2.out",
+              onUpdate: () => {
+                if (digit) digit.textContent = String(Math.round(counter.v)).padStart(2, "0");
+              },
+            },
+            t,
+          );
+          // los puntos se pintan uno a uno hacia el siguiente paso, cada uno con un pequeño golpe de escala
+          dots.forEach((dot, d) => {
+            const at = t + 0.3 + d * 0.085;
+            tl.to(dot, { scale: 1.7, backgroundColor: PAINT, duration: 0.18, ease: "power2.out" }, at);
+            tl.to(dot, { scale: 1, duration: 0.35, ease: "back.out(3)" }, at + 0.18);
+          });
+          tl.to(step.querySelector(".tl-title"), { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9 }, t + 0.12);
+          tl.to(step.querySelector(".tl-text"), { opacity: 1, y: 0, filter: "blur(0px)", duration: 0.9 }, t + 0.24);
+        });
+
+        // el scroll queda congelado hasta que todo se muestre; si la persona insiste, la animación acelera
+        return lockedSequence({ root: root.current!, scroller, tl, stop, start, glideTo });
       });
+
+      return () => mm.revert();
     },
     { scope: root, dependencies: [scroller] },
   );
@@ -68,8 +116,11 @@ export function Timeline() {
         {steps.map((s, i) => (
           <li key={s.n} className="tl-step">
             <div className="flex items-center">
-              <span className="tl-num grid size-[48px] shrink-0 place-items-center rounded-full bg-[#f1f5ee] text-[22px]">
-                {s.n}
+              <span className="tl-num relative grid size-[48px] shrink-0 place-items-center rounded-full bg-[#f1f5ee] text-[22px]">
+                <span aria-hidden className="tl-ring pointer-events-none absolute inset-0 rounded-full border-2 border-[#9fd07a]" />
+                <span className="tl-n tabular-nums" aria-label={s.n}>
+                  {s.n}
+                </span>
               </span>
               <span
                 className={`ml-4 hidden flex-1 pr-4 md:flex ${i === steps.length - 1 ? "gap-[18px]" : "justify-between"}`}
@@ -79,10 +130,10 @@ export function Timeline() {
                 ))}
               </span>
             </div>
-            <h3 className="mt-[40px] text-[20px] font-medium tracking-tight" style={{ marginTop: 40 + i * 2 }}>
+            <h3 className="tl-title mt-[40px] text-[20px] font-medium tracking-tight" style={{ marginTop: 40 + i * 2 }}>
               {s.title}
             </h3>
-            <p className="mt-2 max-w-[170px] text-[13px] leading-snug text-[#a8aca6]">{s.text}</p>
+            <p className="tl-text mt-2 max-w-[170px] text-[13px] leading-snug text-[#a8aca6]">{s.text}</p>
           </li>
         ))}
       </ol>
