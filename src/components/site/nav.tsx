@@ -11,7 +11,7 @@ import { useScroller } from "./scroller-context";
 const links = [
   { label: "Inicio", href: "/" },
   { label: "Servicios", href: "/services" },
-  { label: "Programas", href: "/programs" },
+  { label: "Conócenos", href: "/about" },
   { label: "Contacto", href: "/contact" },
 ];
 
